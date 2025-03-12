@@ -1,0 +1,14 @@
+venv/
+.venv/
+
+__pycache__/
+*.pyc
+*.pyo
+
+.env
+*.sqlite3
+
+staticfiles/
+media/
+
+poetry.lock
