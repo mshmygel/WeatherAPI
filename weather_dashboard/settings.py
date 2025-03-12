@@ -52,6 +52,8 @@ INSTALLED_APPS = [
 
     # Django REST Framework
     "rest_framework",
+    "django_filters",
+    "drf_yasg",
 ]
 
 MIDDLEWARE = [
