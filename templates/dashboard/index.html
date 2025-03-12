@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Weather Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f0f8ff;
+            margin: 0;
+            padding: 20px;
+        }
+        .weather-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+        .weather-card {
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            padding: 15px;
+            width: 200px;
+        }
+        button {
+            margin-top: 10px;
+            padding: 5px 10px;
+            border: none;
+            border-radius: 4px;
+            background-color: #4CAF50;
+            color: white;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+    </style>
+</head>
+<body>
+    <h1>Weather Dashboard</h1>
+    <div class="weather-container" id="weather-container"></div>
+
+    <script>
+        async function fetchWeatherData() {
+            const response = await fetch('/api/weather/');
+            const data = await response.json();
+
+            const container = document.getElementById('weather-container');
+            container.innerHTML = '';
+
+            data.forEach(city => {
+                const card = document.createElement('div');
+                card.className = 'weather-card';
+                card.innerHTML = `
+                    <h3>${city.city}</h3>
+                    <p><strong>Temperature:</strong> ${city.temperature} °C</p>
+                    <p><strong>Humidity:</strong> ${city.humidity}%</p>
+                    <p><strong>Wind Speed:</strong> ${city.wind_speed} m/s</p>
+                    <p><strong>Description:</strong> ${city.description}</p>
+                    <button onclick="updateWeather('${city.city}')">Update</button>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        async function updateWeather(city) {
+            await fetch('/api/fetch-weather/', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ city })
+            });
+
+            alert(`Weather update requested for ${city}`);
+        }
+
+        document.addEventListener('DOMContentLoaded', fetchWeatherData);
+    </script>
+</body>
+</html>
