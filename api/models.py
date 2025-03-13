@@ -1,5 +1,6 @@
 from django.db import models
 
+
 class WeatherData(models.Model):
     city = models.CharField(max_length=100)
     temperature = models.FloatField()
@@ -12,5 +13,5 @@ class WeatherData(models.Model):
         ordering = ["-timestamp"]
 
     def __str__(self):
-        return f"{self.city} - {self.temperature}°C ({self.timestamp})"
+        return f"{self.city} @ {self.timestamp:%Y-%m-%d %H:%M}"
 

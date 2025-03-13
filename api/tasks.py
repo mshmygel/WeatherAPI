@@ -1,28 +1,34 @@
 from celery import shared_task
+import os
 import requests
-from api.models import WeatherData
+from .models import WeatherData
+
 
 @shared_task
 def fetch_weather_data(city):
-    import requests
-    import os
-
+    """
+    Celery task that fetches weather data from a public API and
+    CREATES a new WeatherData row each time (for historical storage).
+    """
     api_key = os.getenv("WEATHER_API_KEY")
-    url = f"https://api.openweathermap.org/data/2.5/weather?q={city}&appid={api_key}&units=metric"
+    base_url = os.getenv("WEATHER_API_URL", "https://api.openweathermap.org/data/2.5/weather")
 
-    response = requests.get(url)
+    params = {
+        "q": city,
+        "appid": api_key,
+        "units": "metric",
+        "lang": "en",
+    }
+    response = requests.get(base_url, params=params)
     response.raise_for_status()
 
-    weather = response.json()
+    data = response.json()
 
-    from api.models import WeatherData
-
-    obj = WeatherData.objects.create(
-        city=weather["name"],
-        temperature=weather["main"]["temp"],
-        humidity=weather["main"]["humidity"],
-        wind_speed=weather["wind"]["speed"],
-        description=weather["weather"][0]["description"]
+    # Always create a new historical row
+    WeatherData.objects.create(
+        city=data["name"],
+        temperature=data["main"]["temp"],
+        humidity=data["main"]["humidity"],
+        wind_speed=data["wind"]["speed"],
+        description=data["weather"][0]["description"]
     )
-
-    return obj.id
