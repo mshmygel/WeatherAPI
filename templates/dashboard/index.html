@@ -1,81 +1,284 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Weather Dashboard</title>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            background-color: #f0f8ff;
-            margin: 0;
-            padding: 20px;
-        }
-        .weather-container {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 15px;
-        }
-        .weather-card {
-            background-color: white;
-            border-radius: 8px;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-            padding: 15px;
-            width: 200px;
-        }
-        button {
-            margin-top: 10px;
-            padding: 5px 10px;
-            border: none;
-            border-radius: 4px;
-            background-color: #4CAF50;
-            color: white;
-            cursor: pointer;
-        }
-        button:hover {
-            background-color: #45a049;
-        }
-    </style>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Weather Dashboard</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    /* Minimalistic styling for demonstration */
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f5f5f5; /* light gray background */
+      margin: 0;
+      padding: 20px;
+      text-align: center; /* center the main title and content */
+    }
+    h1 {
+      margin-bottom: 30px;
+    }
+    .city-inputs {
+      display: inline-block; /* keep input fields + button in a small block */
+      text-align: left;      /* align labels on the left side */
+      margin-bottom: 20px;
+    }
+    .city-inputs div {
+      margin: 5px 0;
+    }
+    .weather-container {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 15px;
+      justify-content: center; /* center the weather cards horizontally */
+    }
+    .weather-card {
+      background-color: #fff;
+      border-radius: 8px;
+      box-shadow: 0 3px 6px rgba(0,0,0,0.1);
+      padding: 15px;
+      width: 200px;
+      margin-bottom: 20px;
+    }
+    button {
+      margin-top: 10px;
+      padding: 6px 14px;
+      border: none;
+      border-radius: 4px;
+      background-color: #007bff;
+      color: #fff;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #0062cc; /* slightly darker on hover */
+    }
+    /* A container for our Chart.js line chart */
+    #chartContainer {
+      max-width: 700px;
+      margin: 20px auto;
+      background-color: #fff;
+      border-radius: 8px;
+      box-shadow: 0 3px 6px rgba(0,0,0,0.1);
+      padding: 15px;
+      display: none; /* hidden until Show History is triggered */
+    }
+  </style>
 </head>
 <body>
-    <h1>Weather Dashboard</h1>
-    <div class="weather-container" id="weather-container"></div>
+  <h1>Weather Dashboard</h1>
 
-    <script>
-        async function fetchWeatherData() {
-            const response = await fetch('/api/weather/');
-            const data = await response.json();
+  <!-- Up to five city inputs -->
+  <div class="city-inputs">
+    <div>
+      <label>City 1:</label>
+      <input type="text" id="city1" placeholder="e.g. London"/>
+    </div>
+    <div>
+      <label>City 2:</label>
+      <input type="text" id="city2" placeholder="e.g. Paris"/>
+    </div>
+    <div>
+      <label>City 3:</label>
+      <input type="text" id="city3" placeholder="e.g. Kyiv"/>
+    </div>
+    <div>
+      <label>City 4:</label>
+      <input type="text" id="city4" placeholder="..."/>
+    </div>
+    <div>
+      <label>City 5:</label>
+      <input type="text" id="city5" placeholder="..."/>
+    </div>
+    <button onclick="fetchWeatherForCities()">Fetch Weather</button>
+  </div>
 
-            const container = document.getElementById('weather-container');
-            container.innerHTML = '';
+  <!-- Container to display current weather cards -->
+  <div class="weather-container" id="weather-container"></div>
 
-            data.forEach(city => {
-                const card = document.createElement('div');
-                card.className = 'weather-card';
-                card.innerHTML = `
-                    <h3>${city.city}</h3>
-                    <p><strong>Temperature:</strong> ${city.temperature} °C</p>
-                    <p><strong>Humidity:</strong> ${city.humidity}%</p>
-                    <p><strong>Wind Speed:</strong> ${city.wind_speed} m/s</p>
-                    <p><strong>Description:</strong> ${city.description}</p>
-                    <button onclick="updateWeather('${city.city}')">Update</button>
-                `;
-                container.appendChild(card);
-            });
+  <!-- Container for historical chart -->
+  <div id="chartContainer">
+    <h3>Historical Weather</h3>
+    <canvas id="chartCanvas" width="600" height="300"></canvas>
+  </div>
+
+  <script>
+    /*
+     * 1) On DOMContentLoaded, fetch existing weather data (GET /api/weather/)
+     *    and display the most recent record per city.
+     */
+    document.addEventListener('DOMContentLoaded', fetchWeatherData);
+
+    async function fetchWeatherData() {
+      try {
+        const response = await fetch('/api/weather/');
+        const data = await response.json();
+
+        const container = document.getElementById('weather-container');
+        container.innerHTML = ''; // clear previous content
+
+        data.forEach(cityObj => {
+          const card = document.createElement('div');
+          card.className = 'weather-card';
+          card.innerHTML = `
+            <h3>${cityObj.city}</h3>
+            <p><strong>Temperature:</strong> ${cityObj.temperature} °C</p>
+            <p><strong>Humidity:</strong> ${cityObj.humidity}%</p>
+            <p><strong>Wind Speed:</strong> ${cityObj.wind_speed} m/s</p>
+            <p><strong>Description:</strong> ${cityObj.description}</p>
+            <button onclick="updateWeather('${cityObj.city}')">Update</button>
+            <button onclick="showHistory('${cityObj.city}')">Show History</button>
+          `;
+          container.appendChild(card);
+        });
+      } catch (err) {
+        console.error("Failed to fetch weather data:", err);
+      }
+    }
+
+    /*
+     * 2) fetchWeatherForCities()
+     *    Grabs up to 5 city inputs, ignoring empty strings,
+     *    calls postCityFetch(city) for each,
+     *    then refreshes the main list from /api/weather/.
+     */
+    async function fetchWeatherForCities() {
+      const inputs = ['city1', 'city2', 'city3', 'city4', 'city5'];
+      let cityList = [];
+
+      for (let id of inputs) {
+        const val = document.getElementById(id).value.trim();
+        if (val) cityList.push(val);
+      }
+
+      if (cityList.length === 0) {
+        alert("Please enter at least one city.");
+        return;
+      }
+      if (cityList.length > 10) {
+        alert("You can enter up to 10 cities.");
+        return;
+      }
+
+      for (const c of cityList) {
+        await postCityFetch(c);
+      }
+      fetchWeatherData();
+    }
+
+    /*
+     * 3) updateWeather(city):
+     *    Triggered by "Update" on each city card. Calls postCityFetch(city),
+     *    then reloads data from /api/weather/.
+     */
+    async function updateWeather(city) {
+      await postCityFetch(city);
+      fetchWeatherData();
+    }
+
+    /*
+     * 4) postCityFetch(city):
+     *    POST /api/fetch-weather/ to run Celery tasks that create or update data.
+     */
+    async function postCityFetch(city) {
+      try {
+        const response = await fetch('/api/fetch-weather/', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ city })
+        });
+        if (!response.ok) {
+          let err = await response.json();
+          console.warn("Error fetching weather for city=", city, err);
+        }
+      } catch (err) {
+        console.error("POST fetch-weather error:", err);
+      }
+    }
+
+    /*
+     * 5) showHistory(city):
+     *    GET /api/history/?city=...&days=7
+     *    Then display a line chart with temperature over time.
+     */
+    async function showHistory(city) {
+      try {
+        const days = 7;
+        // NB: replaced /api/weather/history/ with /api/history/
+        const resp = await fetch(`/api/history/?city=${encodeURIComponent(city)}&days=${days}`);
+        if (!resp.ok) {
+          const error = await resp.json();
+          alert("Failed to fetch history for " + city);
+          console.warn("Error fetching history:", error);
+          return;
         }
 
-        async function updateWeather(city) {
-            await fetch('/api/fetch-weather/', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ city })
-            });
-
-            alert(`Weather update requested for ${city}`);
+        const historyData = await resp.json();
+        if (!historyData.length) {
+          alert("No history found for " + city);
+          return;
         }
 
-        document.addEventListener('DOMContentLoaded', fetchWeatherData);
-    </script>
+        const labels = historyData.map(item => new Date(item.timestamp).toLocaleString());
+        const temperatures = historyData.map(item => item.temperature);
+
+        drawHistoryChart(labels, temperatures, city);
+      } catch (err) {
+        console.error("Error in showHistory:", err);
+      }
+    }
+
+    let chartInstance = null;
+
+    /*
+     * 6) drawHistoryChart(labels, temperatures, city):
+     *    Render a Chart.js line chart of temperature vs timestamp
+     */
+    function drawHistoryChart(labels, temperatures, city) {
+      const chartContainer = document.getElementById('chartContainer');
+      chartContainer.style.display = 'block';
+
+      const ctx = document.getElementById('chartCanvas').getContext('2d');
+
+      // If there was a previous chart, destroy it first
+      if (chartInstance) {
+        chartInstance.destroy();
+      }
+
+      chartInstance = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: labels,
+          datasets: [{
+            label: `Temperature in ${city}`,
+            data: temperatures,
+            borderColor: 'rgba(255, 99, 132, 1)',
+            backgroundColor: 'rgba(255, 99, 132, 0.2)',
+            fill: true,
+          }]
+        },
+        options: {
+          responsive: true,
+          scales: {
+            y: {
+              beginAtZero: false,
+              title: {
+                display: true,
+                text: 'Temperature (°C)'
+              }
+            },
+            x: {
+              title: {
+                display: true,
+                text: 'Timestamp'
+              },
+              ticks: {
+                autoSkip: true,
+                maxTicksLimit: 8
+              }
+            }
+          }
+        }
+      });
+    }
+  </script>
 </body>
 </html>
